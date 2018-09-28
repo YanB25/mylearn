@@ -22,7 +22,7 @@ def Entropy(dataset):
     val, cnt = np.unique(dataset, return_counts=True)
     cnt_prob = cnt / np.sum(cnt)
     cnt_pro_logpro = cnt_prob * np.log2(cnt_prob)
-    return - np.sum(cnt_pro_logpro)
+    return 0 - np.sum(cnt_pro_logpro)
 
 metrics_fn = {
     'gini': Gini,
