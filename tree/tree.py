@@ -6,8 +6,11 @@ decision tree for classification and regression
 from logger.logger import logger
 from .node import DecisionTreeNode
 
-# renaming
+# renaming a class
 Node = DecisionTreeNode
+
+# a  very small number
+epsilon = 1e-3
 
 def hello():
     logger.debug('hello!!!')
@@ -16,9 +19,17 @@ class DecisionTreeClassifier():
     '''
     decision tree used for classification
     '''
-    def __init__(self, criterion='entropy', max_depth=2):
+    def __init__(
+        self, 
+        criterion='entropy', 
+        max_depth=2, 
+        delta_criterion_threshold=1e-1,
+        min_batch=2
+        ):
         self.__set_criterion(criterion)
         self.max_depth = min(max_depth, 5)
+        self.delta_criterion_threshold = delta_criterion_threshold
+        self.min_batch = min_batch
         self.__root = None
     def __set_criterion(self, criterion):
         self.criterion = criterion
@@ -59,10 +70,20 @@ class DecisionTreeClassifier():
 
         #TODO: recuisive base here
         if depth >= self.max_depth:
+            logger.debug('RET: reach max depth %s', depth)
+            return
+        if abs(node.loss()) <= epsilon:
+            logger.debug('RET: loss %s less than epsilon', abs(node.loss()))
+            return
+        # if dataset at node is less than min_batch
+        batch_size = np.array(node.X).reshape((1, -1)).shape[-1]
+        if batch_size <= self.min_batch:
+            logger.info('RET: batch size %s reach min_batch %s', batch_size, self.min_batch)
             return
 
+
         root_loss = node.loss()
-        logger.debug('root loss %s', root_loss)
+        logger.debug('node loss %s', root_loss)
 
         logger.debug('column is %s', node.X.columns)
 
@@ -89,12 +110,19 @@ class DecisionTreeClassifier():
                 logger.debug('[%s] target_loss: %s', feature_i, target_criterion)
 
                 # entropy gain
+                # only below two variable are interact with outer side
                 delta_criterion = node.loss() - target_criterion
                 logger.debug('[%s]entropy gain(need max) is %s', feature_i, delta_criterion)
 
                 objective_index.append(delta_criterion)
         
         # finished calculate all losses
+
+        # if max objective is negative, no need to split anymore
+        if max(objective_index) <= self.delta_criterion_threshold:
+            logger.debug('RET: criterion gain %s less then threshold %s', max(objective_index), self.delta_criterion_threshold)
+            return
+
         logger.debug('objective index is %s', objective_index)
         max_feature_i = np.argmax(objective_index)
 
@@ -103,14 +131,17 @@ class DecisionTreeClassifier():
         X_group_best = node.X.groupby(best_feature)
         for label, memb_idx in X_group_best.groups.items():
             logger.debug('label %s, group %s', label, memb_idx)
-            new_node = Node(node.X.iloc[memb_idx], node.Y.iloc[memb_idx], node.cri_fn)
+            logger.debug('candidate Xs are \n%s', node.X)
+
+            # NOTICE: use loc instead of iloc.
+            # in child node, iloc use absolute index, may raise out-of-bound index error.
+            new_node = Node(node.X.loc[memb_idx], node.Y.loc[memb_idx], node.cri_fn)
             node.add_child(new_node)
             logger.debug('mount new node finished.')
             new_node.log_info()
+            logger.debug('\n\n next recursive \n\n')
+            self.__buildTree(new_node, depth + 1)
             
-
-
-
     def predict(self):
         pass
     def predict_prob(self):
