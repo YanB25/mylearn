@@ -7,7 +7,7 @@ def configure_logger(name, log_path = 'log.txt'):
     logging.config.dictConfig({
         'version': 1,
         'formatters': {
-            'default': {'format': '[%(levelname)s] %(module)s %(filename)s - %(funcName)s line %(lineno)d - %(message)s - (%(asctime)s)', 'datefmt': '%Y-%m-%d %H:%M:%S'}
+            'default': {'format': '[%(levelname)s] %(module)s %(filename)s - %(funcName)s line %(lineno)d - \n%(message)s\n - (%(asctime)s)\n', 'datefmt': '%Y-%m-%d %H:%M:%S'}
         },
         'handlers': {
             'console': {
