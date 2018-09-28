@@ -1,2 +1,3 @@
 from .tree import hello
-__all__ = ['hello']
+from .tree import DecisionTreeClassifier
+__all__ = ['hello', 'DecisionTreeClassifier']
