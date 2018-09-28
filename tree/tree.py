@@ -32,6 +32,9 @@ class DecisionTreeClassifier():
         self.min_batch = min_batch
         self.__root = None
     def __set_criterion(self, criterion):
+        '''
+        a helper function that used to set all criterion attr correct
+        '''
         self.criterion = criterion
         if criterion == 'gini':
             self.criterion_fn = metrics.Gini
@@ -90,30 +93,14 @@ class DecisionTreeClassifier():
         # used to store and find the one get max objective
         objective_index = []
         for feature_i in node.X.columns:
-            Y_groupby_feature_i = node.Y.groupby(node.X[feature_i])
-
             # below two line debug passed
             # no used. just comment out
-            for label, y in Y_groupby_feature_i:
-                logger.debug('[%s], label: %s, y: %s', feature_i, label, y)
+            # for label, y in Y_groupby_feature_i:
+            #     logger.debug('[%s], label: %s, y: %s', feature_i, label, y)
 
             # for entropy criterion
             if self.criterion == 'entropy':
-                Y_group_criterion = Y_groupby_feature_i.apply(node.cri_fn)
-                Y_group_cnt = Y_groupby_feature_i.apply(len)
-                Y_group_prob = Y_group_cnt / np.sum(Y_group_cnt)
-                logger.debug('[%s] loss: %s', feature_i, Y_group_criterion)
-                logger.debug('[%s] cnt: %s', feature_i, Y_group_cnt)
-                logger.debug('[%s] prob: %s', feature_i, Y_group_prob)
-
-                target_criterion = np.sum(np.array(Y_group_prob) * np.array(Y_group_criterion))
-                logger.debug('[%s] target_loss: %s', feature_i, target_criterion)
-
-                # entropy gain
-                # only below two variable are interact with outer side
-                delta_criterion = node.loss() - target_criterion
-                logger.debug('[%s]entropy gain(need max) is %s', feature_i, delta_criterion)
-
+                delta_criterion = self.__entropy_gain_in_feature(node, feature_i)
                 objective_index.append(delta_criterion)
         
         # finished calculate all losses
@@ -142,6 +129,32 @@ class DecisionTreeClassifier():
             logger.debug('\n\n next recursive \n\n')
             self.__buildTree(new_node, depth + 1)
             
+    def __entropy_gain_in_feature(self, node, feature_i):
+        '''
+        get how entropy changed when Y is group by feature_i
+        input:
+            - node :: Node, the node to be split and judged
+            - feature_i :: Int, idx of feature that calculate entropy gain
+        output:
+            - delta_criterion :: float, gain of entropy
+        '''
+        Y_groupby_feature_i = node.Y.groupby(node.X[feature_i])
+        Y_group_criterion = Y_groupby_feature_i.apply(node.cri_fn)
+        Y_group_cnt = Y_groupby_feature_i.apply(len)
+        Y_group_prob = Y_group_cnt / np.sum(Y_group_cnt)
+        logger.debug('[%s] loss: %s', feature_i, Y_group_criterion)
+        logger.debug('[%s] cnt: %s', feature_i, Y_group_cnt)
+        logger.debug('[%s] prob: %s', feature_i, Y_group_prob)
+
+        target_criterion = np.sum(np.array(Y_group_prob) * np.array(Y_group_criterion))
+        logger.debug('[%s] target_loss: %s', feature_i, target_criterion)
+
+        # entropy gain
+        # only below two variable are interact with outer side
+        delta_criterion = node.loss() - target_criterion
+        logger.debug('[%s]entropy gain(need max) is %s', feature_i, delta_criterion)
+        return delta_criterion
+
     def predict(self):
         pass
     def predict_prob(self):
