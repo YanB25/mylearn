@@ -1,8 +1,8 @@
-import metrics
-import numpy as np
 '''
 decision tree for classification and regression
 '''
+import metrics
+import numpy as np
 from logger.logger import logger
 from .node import DecisionTreeNode
 
