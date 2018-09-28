@@ -24,7 +24,7 @@ class DecisionTreeClassifier():
         criterion='entropy', 
         max_depth=2, 
         delta_criterion_threshold=1e-1,
-        min_batch=2
+        min_batch=3
         ):
         self.__set_criterion(criterion)
         self.max_depth = min(max_depth, 5)
@@ -56,7 +56,23 @@ class DecisionTreeClassifier():
 
         self.__root = Node(self.X, self.Y, self.criterion_fn)
         
+        log_info = ''.join([
+            'begin training decision tree classifier.\n',
+            'criterion=%s\n',
+            'max_depth=%s\n',
+            'delta_criterion_threshold=%s\n',
+            'min_batch=%s\n' 
+        ])
+        logger.info(
+            log_info,
+            self.criterion,
+            self.max_depth,
+            self.delta_criterion_threshold,
+            self.min_batch)
+
         self.__train()
+
+        logger.info('training finished.')
     def __train(self):
         self.__buildTree(self.__root, 0)
     def __buildTree(self, node, depth):
@@ -81,7 +97,7 @@ class DecisionTreeClassifier():
         # if dataset at node is less than min_batch
         batch_size = np.array(node.X).reshape((1, -1)).shape[-1]
         if batch_size <= self.min_batch:
-            logger.info('RET: batch size %s reach min_batch %s', batch_size, self.min_batch)
+            logger.debug('RET: batch size %s reach min_batch %s', batch_size, self.min_batch)
             return
 
 
@@ -155,6 +171,10 @@ class DecisionTreeClassifier():
         logger.debug('[%s]entropy gain(need max) is %s', feature_i, delta_criterion)
         return delta_criterion
 
+    def __self_validate(self):
+        '''
+        after tree has been built, check whether some truth is broken.
+        '''
     def predict(self):
         pass
     def predict_prob(self):

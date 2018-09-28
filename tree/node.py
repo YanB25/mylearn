@@ -4,6 +4,7 @@ class DecisionTreeNode():
     Node class for Decision Tree.
     '''
     def __init__(self, X, Y, cri_fn):
+        #TODO: add feature_i and feature. so that in predict step, it can be referenced
         self.X = X
         self.Y = Y
         self.cri_fn = cri_fn
