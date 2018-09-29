@@ -73,6 +73,9 @@ class DecisionTreeClassifier():
         self.__train()
 
         logger.info('training finished.')
+
+        assert self.__self_validate()
+        logger.info('decision tree pass validation.')
     def __train(self):
         self.__buildTree(self.__root, 0)
     def __buildTree(self, node, depth):
@@ -127,7 +130,10 @@ class DecisionTreeClassifier():
             return
 
         logger.debug('objective index is %s', objective_index)
+
+        # get the best feature index
         max_feature_i = np.argmax(objective_index)
+        node.by_feature_i = max_feature_i
 
         # now build child of the node
         best_feature = node.X.columns[max_feature_i]
@@ -138,7 +144,7 @@ class DecisionTreeClassifier():
 
             # NOTICE: use loc instead of iloc.
             # in child node, iloc use absolute index, may raise out-of-bound index error.
-            new_node = Node(node.X.loc[memb_idx], node.Y.loc[memb_idx], node.cri_fn)
+            new_node = Node(node.X.loc[memb_idx], node.Y.loc[memb_idx], node.cri_fn, label)
             node.add_child(new_node)
             logger.debug('mount new node finished.')
             new_node.log_info()
@@ -175,10 +181,26 @@ class DecisionTreeClassifier():
         '''
         after tree has been built, check whether some truth is broken.
         '''
-    def predict(self):
-        pass
+        aft_sample = DecisionTreeClassifier.__calculate_samples(self.__root) 
+        logger.info('validating tree. n_sample=%s, tree_sample=%s', self.n_sample, aft_sample)
+        return aft_sample == self.n_sample
+
+    @staticmethod
+    def __calculate_samples(node):
+        if node.children == []:
+            logger.debug('leaf node has sample %s', node.Y.shape[0])
+            return node.Y.shape[0]
+        return np.sum([DecisionTreeClassifier.__calculate_samples(child) for child in node.children])
+    def predict(self, predict_X):
+        predict_Y = []
+        for line in np.array(predict_X):
+            logger.debug('predicting x_i %s', line)
+            predict_Y.append(self.__predict(line))
+        return predict_Y
+    def __predict(self, x):
+        return self.__root.predict(x)
     def predict_prob(self):
-        pass
+        raise NotImplementedError()
     def score(self):
-        pass
+        raise NotImplementedError()
     
