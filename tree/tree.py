@@ -5,7 +5,7 @@ import metrics
 import numpy as np
 from logger.logger import logger
 from .node import DecisionTreeNode
-
+import metrics
 # renaming a class
 Node = DecisionTreeNode
 
@@ -21,7 +21,7 @@ class DecisionTreeClassifier():
     '''
     def __init__(
         self, 
-        criterion='entropy', 
+        criterion='id3', 
         max_depth=2, 
         delta_criterion_threshold=1e-1,
         min_batch=3
@@ -36,9 +36,11 @@ class DecisionTreeClassifier():
         a helper function that used to set all criterion attr correct
         '''
         self.criterion = criterion
-        if criterion == 'gini':
+        if criterion == 'cart':
             self.criterion_fn = metrics.Gini
-        elif criterion == 'entropy':
+        elif criterion == 'id3':
+            self.criterion_fn = metrics.Entropy
+        elif criterion == 'c45':
             self.criterion_fn = metrics.Entropy
         else:
             raise Exception("para name unkonw {}".format(criterion))
@@ -113,9 +115,15 @@ class DecisionTreeClassifier():
             #     logger.debug('[%s], label: %s, y: %s', feature_i, label, y)
 
             # for entropy criterion
-            if self.criterion == 'entropy':
+            if self.criterion == 'id3':
                 delta_criterion = self.__entropy_gain_in_feature(node, feature_i)
                 objective_index.append(delta_criterion)
+            elif self.criterion == 'c45':
+                delta_criterion = self.__entropy_rate_gain_in_feature(node, feature_i)
+                objective_index.append(delta_criterion)
+            else:
+                logger.error('ERROR unknown self.criterion %s', self.criterion)
+                raise Exception('unknow tree self.criterion')
         
         # finished calculate all losses
 
@@ -171,6 +179,10 @@ class DecisionTreeClassifier():
         output:
             - delta_criterion :: float, gain of entropy
         '''
+        # in this function, tree must run under below two criterion
+        assert self.criterion == 'id3' or self.criterion == 'c45'
+        assert node.cri_fn == metrics.Entropy
+
         Y_groupby_feature_i = node.Y.groupby(node.X[feature_i])
         Y_group_criterion = Y_groupby_feature_i.apply(node.cri_fn)
         Y_group_cnt = Y_groupby_feature_i.apply(len)
@@ -187,6 +199,25 @@ class DecisionTreeClassifier():
         delta_criterion = node.loss() - target_criterion
         logger.debug('[%s]entropy gain(need max) is %s', feature_i, delta_criterion)
         return delta_criterion
+    def __entropy_rate_gain_in_feature(self, node, feature_i):
+        '''
+        get how entropy RATE changed when Y is group by feature_i
+        input:
+            - node :: Node, the node to be split and judged
+            - feature_i :: Int, idx of feature that calculate entropy RATE gain
+        output:
+            - delta_criterion_rate :: float, gain of entropy RATE.
+                equal to __entropy_gain_in_feature(..) / entropy(feature[i])
+        '''
+        assert self.criterion == 'c45'
+        assert node.cri_fn == metrics.Entropy
+
+        entropy_gain = self.__entropy_gain_in_feature(node, feature_i)
+        logger.debug('calculate attr-entropy at xs\n%s', self.X.iloc[:, feature_i])
+        split_info_entropy = metrics.Entropy(self.X.iloc[:, feature_i])
+        logger.debug('split entropy is %s', split_info_entropy)
+        logger.debug('entropy gain rate is %s', entropy_gain / split_info_entropy)
+        return entropy_gain / split_info_entropy
 
     def __self_validate(self):
         '''
