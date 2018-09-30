@@ -213,6 +213,27 @@ class DecisionTreeClassifier():
     def __predict_prob(self, x):
         return self.__root.predict_prob(x)
 
-    def score(self):
-        raise NotImplementedError()
-    
+    def score(self, predict_X, predict_Y):
+        '''
+        get decision tree accuracy.
+        input:
+            - predict_X :: np.array of shape (n_sample, n_feature)
+            - predict_Y :: np.array of shape (n_sample, )
+        output:
+            - socre :: float, correct-sample / n_sample
+        '''
+        # convert to np.array. Y should be of shape (x,)
+        predict_X = np.array(predict_X)
+        predict_Y = np.array(predict_Y).reshape(-1)
+
+        self_predict_Y = self.predict(predict_X)
+        same_list = self_predict_Y == predict_Y
+        correct_n_sample = np.sum(same_list)
+
+        n_sample = predict_Y.shape[0]
+        logger.debug('ground truth Y %s, self-predict Y %s', predict_Y, self_predict_Y)
+        logger.debug('compare result is %s', same_list)
+        logger.debug('correct_n_sample %s, n_sample %s, score %s', correct_n_sample, n_sample, correct_n_sample/n_sample)
+
+        logger.debug('error idx %s \nXs %s', np.where(~same_list), predict_X[np.where(~same_list)])
+        return correct_n_sample/n_sample
