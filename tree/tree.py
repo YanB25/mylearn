@@ -90,19 +90,14 @@ class DecisionTreeClassifier():
         # as the tree
         assert self.criterion_fn == node.cri_fn
 
-        #TODO: recuisive base here
+        # pre-trunc: max_depth limit
         if depth >= self.max_depth:
             logger.debug('RET: reach max depth %s', depth)
             return
+        # pre-trunc: loss is small enough
         if abs(node.loss()) <= epsilon:
             logger.debug('RET: loss %s less than epsilon', abs(node.loss()))
             return
-        # if dataset at node is less than min_batch
-        batch_size = np.array(node.X).reshape((1, -1)).shape[-1]
-        if batch_size <= self.min_batch:
-            logger.debug('RET: batch size %s reach min_batch %s', batch_size, self.min_batch)
-            return
-
 
         root_loss = node.loss()
         logger.debug('node loss %s', root_loss)
@@ -138,6 +133,17 @@ class DecisionTreeClassifier():
         # now build child of the node
         best_feature = node.X.columns[max_feature_i]
         X_group_best = node.X.groupby(best_feature)
+
+        # count how many row in dataframe
+        count_row = lambda df: len(df.index)
+        group_size = X_group_best.apply(count_row)
+        logger.debug('each group size is %s', group_size)
+
+        # pre-trunc: if least-size group is less than self.min_batch
+        if np.min(group_size) < self.min_batch:
+            logger.debug('RET: after split, min batch size %s less than self.min_batch %s limit.', np.min(group_size), self.min_batch)
+            return
+
         for label, memb_idx in X_group_best.groups.items():
             logger.debug('label %s, group %s', label, memb_idx)
             logger.debug('candidate Xs are \n%s', node.X)
