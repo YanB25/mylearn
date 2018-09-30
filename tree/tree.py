@@ -144,7 +144,12 @@ class DecisionTreeClassifier():
 
             # NOTICE: use loc instead of iloc.
             # in child node, iloc use absolute index, may raise out-of-bound index error.
-            new_node = Node(node.X.loc[memb_idx], node.Y.loc[memb_idx], node.cri_fn, label)
+            new_node = Node(
+                node.X.loc[memb_idx], 
+                node.Y.loc[memb_idx], 
+                node.cri_fn, 
+                acpt_feature=label,
+                classes=node.classes)
             node.add_child(new_node)
             logger.debug('mount new node finished.')
             new_node.log_info()
@@ -194,13 +199,20 @@ class DecisionTreeClassifier():
     def predict(self, predict_X):
         predict_Y = []
         for line in np.array(predict_X):
-            logger.debug('predicting x_i %s', line)
+            logger.debug('predicting x_i %s label', line)
             predict_Y.append(self.__predict(line))
         return predict_Y
     def __predict(self, x):
         return self.__root.predict(x)
-    def predict_prob(self):
-        raise NotImplementedError()
+    def predict_prob(self, predict_X):
+        predict_Y = []
+        for line in np.array(predict_X):
+            logger.debug('predicting x_i %s probability', line)
+            predict_Y.append(self.__predict_prob(line))
+        return predict_Y
+    def __predict_prob(self, x):
+        return self.__root.predict_prob(x)
+
     def score(self):
         raise NotImplementedError()
     
