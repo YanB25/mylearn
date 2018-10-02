@@ -1,6 +1,7 @@
 '''
 decision tree for classification and regression
 '''
+import pydot
 import metrics
 import numpy as np
 from logger.logger import logger
@@ -31,6 +32,7 @@ class DecisionTreeClassifier():
         self.delta_criterion_threshold = delta_criterion_threshold
         self.min_batch = min_batch
         self.__root = None
+        self.__last_node_id = 0
     def __set_criterion(self, criterion):
         '''
         a helper function that used to set all criterion attr correct
@@ -56,7 +58,8 @@ class DecisionTreeClassifier():
         self.n_sample, self.n_feature = self.X.shape
         logger.debug('sample %s, feature %s', self.n_sample, self.n_feature)
 
-        self.__root = Node(self.X, self.Y, self.criterion_fn)
+        self.__root = Node(self.X, self.Y, self.criterion_fn, id=self.__last_node_id)
+        self.__last_node_id += 1
         
         log_info = ''.join([
             'begin training decision tree classifier.\n',
@@ -167,7 +170,9 @@ class DecisionTreeClassifier():
                 node.Y.loc[memb_idx], 
                 node.cri_fn, 
                 acpt_feature=label,
-                classes=node.classes)
+                classes=node.classes,
+                id=self.__last_node_id)
+            self.__last_node_id += 1
             node.add_child(new_node)
             logger.debug('mount new node finished.')
             new_node.log_info()
@@ -329,3 +334,17 @@ class DecisionTreeClassifier():
 
         logger.debug('error idx %s \nXs %s', np.where(~same_list), predict_X[np.where(~same_list)])
         return correct_n_sample/n_sample
+    def build_graph(self, filename):
+        '''
+        build a graph of the tree. output as a png file
+        input:
+            - filename :: str, name of the png file, including 'png' extension
+        '''
+        self.graph = pydot.Dot(graph_type='graph')
+        self.__build_graph(self.__root)
+        self.graph.write_png(filename)
+    def __build_graph(self, node):
+        for child in node.children:
+            edge = pydot.Edge(str(node), str(child))
+            self.graph.add_edge(edge)
+            self.__build_graph(child)

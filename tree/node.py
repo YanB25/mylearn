@@ -10,13 +10,22 @@ class DecisionTreeNode():
         Y, 
         cri_fn, 
         classes=None, 
-        acpt_feature=None):
+        acpt_feature=None,
+        id=None):
         '''
         input:
             - X :: np.array of shape (n_sample, n_feature)
             - Y :: np.array of shape (n_sample, )
+            - cri_fn :: function(Iterable -> float), critera function that
+                map an Iterable to a value indicating loss
             - classes :: the predicted domain. MUST be the same in the whole tree
+            - acpt_feature :: the feature val that this node accept. used 
+                in predict step
+            - id(option) :: Int, the unique number in the tree. used when
+                generating tree graph.
         '''
+        self.id = id
+
         self.X = X
         self.Y = Y
         self.n_sample = self.Y.shape[0]
@@ -40,13 +49,13 @@ class DecisionTreeNode():
 
         # merge two dict
         self.prob_dict = {**nonezero_prob_dict, **zero_dict}
-        logger.debug('node prob dict is %s', self.prob_dict)
+        logger.debug('[%s]node prob dict is %s', self.id, self.prob_dict)
 
         self.most_y = val[max_idx] # the label y that occurs most
         self.most_y_prob = cnt[max_idx] / Y.shape[0] # the prob that the y is correct(by prob)
         assert 0 <= self.most_y_prob <= 1 # do worry, python surpport that.
         assert isinstance(self.most_y_prob, float)
-        logger.debug('node get most y %s for ys %s, at prob %s', self.most_y, self.Y, self.most_y_prob)
+        logger.debug('[%s]node get most y %s for ys %s, at prob %s', self.id, self.most_y, self.Y, self.most_y_prob)
 
     def loss(self):
         return self.__loss
@@ -63,7 +72,7 @@ class DecisionTreeNode():
         '''
         self.children.append(new_node)
     def log_info(self):
-        logger.debug('X is \n%s\n Y is \n%s\n, loss is %s, children are %s', self.X, self.Y, self.__loss, self.children)
+        logger.debug('[%s] node X is \n%s\n Y is \n%s\n, loss is %s, children are %s', self.id, self.X, self.Y, self.__loss, self.children)
     def __predict(self, x):
         '''
         recursively predict a sample x, return its predicted label and proba-list
@@ -83,7 +92,7 @@ class DecisionTreeNode():
             logger.debug(log_str, self.most_y, proba_list, self.classes)
             return self.most_y, proba_list
         comming_feature = x[self.by_feature_i]
-        logger.debug('judge sample by feature index %s, get feature val %s', self.by_feature_i, comming_feature)
+        logger.debug('[%s] node judge sample by feature index %s, get feature val %s', self.id, self.by_feature_i, comming_feature)
         for child in self.children:
             assert child.acpt_feature is not None
             if child.acpt_feature == comming_feature:
@@ -107,6 +116,11 @@ class DecisionTreeNode():
             - proba-list :: [float] of length n_output
         '''
         return self.__predict(x)[1]
-
-
-        
+    def __str__(self):
+        '''
+        convert to string. used in generating graph
+        '''
+        val, cnt = np.unique(self.Y, return_counts=True)
+        if self.children == []:
+            return '[{}]\n acpt-attr={}\npredict-Y={}\nfractions={},{}%'.format(self.id, self.acpt_feature, self.most_y, cnt, self.most_y_prob*100)
+        return '[{}]\n acpt-attr={}\n ------ \nsplit-attr-index={}\n'.format(self.id, self.acpt_feature, self.by_feature_i)
