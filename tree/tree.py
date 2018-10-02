@@ -247,9 +247,9 @@ class DecisionTreeClassifier():
         logger.debug('[%s] prob: %s', feature_i, Y_group_proba)
 
         node_feature_gini = np.sum(np.array(Y_group_gini) * np.array(Y_group_proba))
-        logger.debug('[%s] (minus) node gini index: %s', feature_i, - node_feature_gini)
+        logger.debug('[%s] (minus) node gini index: %s', feature_i, 0 - node_feature_gini)
         # because less gini means less uncertanty
-        return - node_feature_gini
+        return 0 - node_feature_gini
 
     def __self_validate(self):
         '''
@@ -281,6 +281,29 @@ class DecisionTreeClassifier():
         return predict_Y
     def __predict_prob(self, x):
         return self.__root.predict_prob(x)
+
+    def depth(self):
+        '''
+        return depth of the tree
+        output:
+            depth :: int, the depth of the tree. root's depth is zero
+        '''
+        return self.__depth(self.__root)
+    def __depth(self, node):
+        if node.children == []:
+            return 0
+        return 1 + np.max([self.__depth(child) for child in node.children])
+    def width(self):
+        '''
+        return num of leave in the tree
+        output:
+            width :: int, num of leave
+        '''
+        return self.__width(self.__root)
+    def __width(self, node):
+        if node.children == []:
+            return 1
+        return np.sum([self.__width(child) for child in node.children])
 
     def score(self, predict_X, predict_Y):
         '''
