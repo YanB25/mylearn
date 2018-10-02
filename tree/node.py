@@ -97,8 +97,26 @@ class DecisionTreeNode():
             assert child.acpt_feature is not None
             if child.acpt_feature == comming_feature:
                 return child.__predict(x)
-        logger.error('error for sample x %s\n feature_i %s\nfeature value %s\n node acpt feature %s\n', x, self.by_feature_i, comming_feature, self.acpt_feature)
-        raise Exception('Error! can not judge the sample!')
+        logger.warning('warning for sample x %s\n feature_i %s\nfeature value %s\n node acpt feature %s\n', x, self.by_feature_i, comming_feature, self.acpt_feature)
+
+        #TODO: should be modified
+        # not can not judge this sample. try a workaround.
+        most_ys = []
+        proba_lists = []
+        for child in self.children:
+            assert child.acpt_feature is not None
+            most_y, proba_list = child.__predict(x)
+            most_ys.append(most_y)
+            proba_lists.append(proba_list)
+        
+        # now judge this 'unknown feature' sample base on the above infomation
+        sum_proba_list = np.sum(proba_lists, axis=0)
+        reg_sum_proba_list = sum_proba_list / np.sum(sum_proba_list)
+        logger.debug('sample out-of-bound. get workaround proba-list %s', reg_sum_proba_list)
+
+        max_index = np.argmax(reg_sum_proba_list)
+        return self.classes[max_index], reg_sum_proba_list
+
 
     def predict(self, x):
         '''
