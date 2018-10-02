@@ -41,3 +41,5 @@ def configure_logger(name, log_path = 'log.txt'):
     return logging.getLogger(name)
 
 logger = configure_logger('default', 'log13.txt')
+def disable_debug():
+    logger.setLevel(logging.INFO)

@@ -1,2 +1,3 @@
 from .logger import logger
-__all__ = ['logger']
+from .logger import disable_debug
+__all__ = ['logger', 'disable_debug']

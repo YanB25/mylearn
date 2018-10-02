@@ -121,6 +121,9 @@ class DecisionTreeClassifier():
             elif self.criterion == 'c45':
                 delta_criterion = self.__entropy_rate_gain_in_feature(node, feature_i)
                 objective_index.append(delta_criterion)
+            elif self.criterion == 'cart':
+                delta_criterion = self.__gini_coefficient_in_feature(node, feature_i)
+                objective_index.append(delta_criterion)
             else:
                 logger.error('ERROR unknown self.criterion %s', self.criterion)
                 raise Exception('unknow tree self.criterion')
@@ -128,8 +131,8 @@ class DecisionTreeClassifier():
         # finished calculate all losses
 
         # if max objective is negative, no need to split anymore
-        if max(objective_index) <= self.delta_criterion_threshold:
-            logger.debug('RET: criterion gain %s less then threshold %s', max(objective_index), self.delta_criterion_threshold)
+        if np.max(np.abs(objective_index)) <= self.delta_criterion_threshold:
+            logger.debug('RET: criterion gain %s less then threshold %s', np.max(np.abs(objective_index)), self.delta_criterion_threshold)
             return
 
         logger.debug('objective index is %s', objective_index)
@@ -141,6 +144,7 @@ class DecisionTreeClassifier():
         # now build child of the node
         best_feature = node.X.columns[max_feature_i]
         X_group_best = node.X.groupby(best_feature)
+        logger.debug('best split by feature name %s', best_feature)
 
         # count how many row in dataframe
         count_row = lambda df: len(df.index)
@@ -175,7 +179,7 @@ class DecisionTreeClassifier():
         get how entropy changed when Y is group by feature_i
         input:
             - node :: Node, the node to be split and judged
-            - feature_i :: Int, idx of feature that calculate entropy gain
+            - feature_i :: str, the name of a feature title. (header of X's dataframe)
         output:
             - delta_criterion :: float, gain of entropy
         '''
@@ -188,6 +192,7 @@ class DecisionTreeClassifier():
         Y_group_cnt = Y_groupby_feature_i.apply(len)
         Y_group_prob = Y_group_cnt / np.sum(Y_group_cnt)
         logger.debug('[%s] loss: %s', feature_i, Y_group_criterion)
+        logger.debug('[%s] Y: %s', feature_i, node.Y)
         logger.debug('[%s] cnt: %s', feature_i, Y_group_cnt)
         logger.debug('[%s] prob: %s', feature_i, Y_group_prob)
 
@@ -204,7 +209,7 @@ class DecisionTreeClassifier():
         get how entropy RATE changed when Y is group by feature_i
         input:
             - node :: Node, the node to be split and judged
-            - feature_i :: Int, idx of feature that calculate entropy RATE gain
+            - feature_i :: str, the name of a feature title. (header of X's dataframe)
         output:
             - delta_criterion_rate :: float, gain of entropy RATE.
                 equal to __entropy_gain_in_feature(..) / entropy(feature[i])
@@ -218,6 +223,33 @@ class DecisionTreeClassifier():
         logger.debug('split entropy is %s', split_info_entropy)
         logger.debug('entropy gain rate is %s', entropy_gain / split_info_entropy)
         return entropy_gain / split_info_entropy
+    def __gini_coefficient_in_feature(self, node, feature_i):
+        '''
+        calculate gini coefficient when spliting node by feature i.
+        input:
+            - node :: Node, the node to be split and judged
+            - feature_i :: str, the name of a feature title. (header of X's dataframe)
+        outout:
+            - gini_coefficient :: float, the according coefficient
+                NOTICE: less gini means better 
+        '''
+        assert self.criterion == 'cart'
+        assert node.cri_fn == metrics.Gini
+
+        Y_groupby_feature_i = node.Y.groupby(node.X[feature_i]) # node.X :: pd.DataFrame. feature_i is its feature name
+        Y_group_gini = Y_groupby_feature_i.apply(node.cri_fn)
+        Y_group_cnt = Y_groupby_feature_i.apply(len)
+        Y_group_proba = Y_group_cnt / np.sum(Y_group_cnt)
+        logger.debug('[%s] loss: %s', feature_i, Y_group_gini)
+        logger.debug('[%s] X: %s', feature_i, node.X)
+        logger.debug('[%s] Y: %s', feature_i, node.Y)
+        logger.debug('[%s] cnt: %s', feature_i, Y_group_cnt)
+        logger.debug('[%s] prob: %s', feature_i, Y_group_proba)
+
+        node_feature_gini = np.sum(np.array(Y_group_gini) * np.array(Y_group_proba))
+        logger.debug('[%s] (minus) node gini index: %s', feature_i, - node_feature_gini)
+        # because less gini means less uncertanty
+        return - node_feature_gini
 
     def __self_validate(self):
         '''

@@ -63,7 +63,7 @@ class DecisionTreeNode():
         '''
         self.children.append(new_node)
     def log_info(self):
-        logger.info('X is \n%s\n Y is \n%s\n, loss is %s, children are %s', self.X, self.Y, self.__loss, self.children)
+        logger.debug('X is \n%s\n Y is \n%s\n, loss is %s, children are %s', self.X, self.Y, self.__loss, self.children)
     def __predict(self, x):
         '''
         recursively predict a sample x, return its predicted label and proba-list
