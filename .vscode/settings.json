@@ -1,6 +1,6 @@
 {
     "python.pythonPath": "/Users/yanbin/miniconda3/envs/AI/bin/python",
     "python.linting.pylintArgs": [
-        "--extension-pkg-whitelist=numpy"
+        "--extension-pkg-whitelist=numpy,pydot"
     ]
 }

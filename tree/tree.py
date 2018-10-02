@@ -340,6 +340,9 @@ class DecisionTreeClassifier():
         input:
             - filename :: str, name of the png file, including 'png' extension
         '''
+        if self.__root is None:
+            logger.error('call DecisionTreeClassifier.fit before build_graph.')
+            return
         self.graph = pydot.Dot(graph_type='graph')
         self.__build_graph(self.__root)
         self.graph.write_png(filename)
