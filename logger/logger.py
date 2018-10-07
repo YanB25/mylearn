@@ -26,7 +26,7 @@ def configure_logger(name, log_path = 'log.txt'):
             }
         },
         'loggers': {
-            'default': {
+            '': {
                 'level': 'DEBUG',
                 #'handlers': ['console', 'file']
                 'handlers': ['console']
@@ -40,6 +40,20 @@ def configure_logger(name, log_path = 'log.txt'):
     })
     return logging.getLogger(name)
 
-logger = configure_logger('default', 'log13.txt')
+#logger = configure_logger('default', 'log13.txt')
+__get_logger = {}
+def get_logger(name):
+    if __get_logger.get(name):
+        return __get_logger[name]
+    new_logger = configure_logger(name)
+    __get_logger[name] = new_logger
+    return new_logger
+
 def disable_debug():
-    logger.setLevel(logging.INFO)
+    for _logger in __get_logger.values():
+        _logger.setLevel(logging.WARNING)
+def enable_debug():
+    for _logger in __get_logger.values():
+        _logger.setLevel(logging.DEBUG)
+
+logger = get_logger('default')

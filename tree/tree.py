@@ -351,3 +351,23 @@ class DecisionTreeClassifier():
             edge = pydot.Edge(str(node), str(child))
             self.graph.add_edge(edge)
             self.__build_graph(child)
+    def __str__(self):
+        '''
+        print out important param setting.
+        '''
+        return ''.join([
+            'Decision Tree Classifier',
+            'width={}\n',
+            'height(0-based)={}\n',
+            'criterion={}\n',
+            'max_depth={}\n',
+            'delta_criterion_threshold={}\n',
+            'min_batch={}\n' 
+        ]).format(
+            self.width(),
+            self.depth(),
+            self.criterion,
+            self.max_depth,
+            self.delta_criterion_threshold,
+            self.min_batch
+        )

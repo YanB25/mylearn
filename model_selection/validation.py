@@ -19,11 +19,9 @@ def cross_val_score(clf, data, target, cv=10):
         logger.debug('[cross %s]tarning_target %s', i, training_target)
         logger.debug('[cross %s]predicting_data %s', i, predicting_data)
         logger.debug('[cross %s]predicint_target %s', i, predicting_target)
-        logger.setLevel(logging.INFO)
         clf.fit(training_data, training_target)
         score = clf.score(predicting_data, predicting_target)
         scores.append(score)
-        logger.setLevel(logging.DEBUG)
     return scores
         
 
