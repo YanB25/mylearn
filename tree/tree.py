@@ -4,12 +4,14 @@ decision tree for classification and regression
 import pydot
 import metrics
 import numpy as np
-from logger.logger import logger
+from logger import get_logger
 from .node import DecisionTreeNode
 import metrics
+
+logger = get_logger(__name__)
+
 # renaming a class
 Node = DecisionTreeNode
-
 # a  very small number
 epsilon = 1e-3
 
