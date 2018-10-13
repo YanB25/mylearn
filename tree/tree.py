@@ -348,6 +348,8 @@ class DecisionTreeClassifier():
         self.graph = pydot.Dot(graph_type='graph')
         self.__build_graph(self.__root)
         self.graph.write_png(filename)
+    def after_trunc(self):
+        raise NotImplementedError()
     def __build_graph(self, node):
         for child in node.children:
             edge = pydot.Edge(str(node), str(child))
