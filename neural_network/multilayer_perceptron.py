@@ -96,6 +96,7 @@ class MLPClassifier():
             for i in range(self.n_layers_ - 1)
         ]
 
+        mylogger.debug('init X %s\ninitY %s', self.X, self.Y)
         for i in range(self.n_layers_-1):
             mylogger.debug('init [%s] coef %s', i, self.coef_[i])
             mylogger.debug('init [%s] intercept %s', i, self.intercepts_[i])
@@ -195,8 +196,14 @@ class MLPClassifier():
                 WError = np.dot(np.transpose(self.coef_[i_layer+1]), self.Error[i_layer+1])
                 Error = WError * np.where(self.Zs[i_layer] > 0, self.Zs[i_layer], 0)
                 self.Error[i_layer] = Error
-                mylogger.debug('bp [%s], error is %s, coef is %s', i_layer, self.Error[i_layer+1].shape, self.coef_[i_layer+1].shape)
-                mylogger.debug('bp [%s], coef %s, Error(i+1) %s, WError %s, Error(i) %s',
+                mylogger.debug('bp [%s], coef %s, error(i+1) is %s, WErr is %s, Error(i) %s', 
+                    i_layer, 
+                    self.coef_[i_layer+1].shape,
+                    self.Error[i_layer+1].shape, 
+                    WError.shape,
+                    self.Error[i_layer].shape
+                )
+                mylogger.debug('bp [%s], coef %s\n, Error(i+1) %s\n, WError %s\n, Error(i) %s',
                     i_layer,
                     self.coef_[i_layer+1],
                     self.Error[i_layer+1],
