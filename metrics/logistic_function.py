@@ -13,6 +13,8 @@ def LeakReLu(slope, dataset):
     @param dataset :: Iterable at any shape
     '''
     return np.where(dataset > 0, dataset, dataset * slope)
+def Sigmoid(dataset):
+  return 1 / (1 + np.exp(-dataset))
 def Softmax(dataset):
     exp_list = np.exp(dataset)
     return exp_list / np.sum(exp_list)

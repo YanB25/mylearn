@@ -1,7 +1,7 @@
 import numpy as np
 from logger import get_logger
 import metrics
-mylogger = get_logger(__name__)
+mylogger = get_logger(__name__ + '.MLPClassifier')
 
 def hello():
     mylogger.debug('hello!')
@@ -10,12 +10,13 @@ class MLPClassifier():
     def __init__(
         self,
         hidden_layer_sizes=(20, ),
-        activation='relu',
-        learning_rate_init=0.1,
+        activation='sigmoid',
+        learning_rate_init=0.01,
         max_iter=5000,
         tol=1e-4,
         verbose=False,
-        warm_start=True
+        warm_start=True,
+        random_stat=1
     ):
         '''
         @param hidden_layer_sides :: Tuple(Int). the hidden layer sizes.
@@ -33,14 +34,18 @@ class MLPClassifier():
         self.max_iter = max_iter
         self.tol = tol
         self.warm_start = warm_start
+        self.__last_loss = None
+        np.random.seed(random_stat)
         if not verbose:
             import logging
-            mylogger.setLevel(logging.WARNING)
+            mylogger.setLevel(logging.INFO)
 
         if self.activation == 'relu':
-            self.activate = metrics.ReLu
-        elif self.activate == 'leakyrelu':
-            self.activate = metrics.LeakReLu
+            self.activation = metrics.ReLu
+        elif self.activation == 'leakyrelu':
+            self.activation = metrics.LeakReLu
+        elif self.activation == 'sigmoid':
+            self.activate = metrics.Sigmoid
         else:
             raise NotImplementedError('unknown activation {}'.format(self.activation))
     def fit(self, X, Y):
@@ -55,19 +60,21 @@ class MLPClassifier():
         self.n_attr_ = X.shape[0]
 
         val, cnt = np.unique(Y, return_counts=True)
-        self.n_output_ = val.shape[0]
+        # self.n_output_ = val.shape[0]
+        self.n_output_ = 1 #TODO: now output become 1
         self.n_classes_ = val
 
-        # the i-th is Weight matrix at layer (i-1)
+        # the i-th is Weight matrix map layer i to layer i+1
         # of shape (ls[i+1], ls[i])
         # 0 <= i <= n_layers-1
         self.coef_ = []
 
-        # the i-th is bias vector at layer (i-1)
-        # of shape (ls[i+1], n_sample)
-        # 0 <= i <= n_layers-1
+        # the i-th is bias vector at layer i
+        # of shape (ls[i], n_sample_)
+        # 0 <= i <= n_layers-2
         self.intercepts_ = []
 
+        # TODO: output become 1 node!
         self.layer_sizes = (self.n_attr_, *self.hidden_layer_sizes, self.n_output_)
         self.n_layers_ = len(self.layer_sizes)
 
@@ -80,19 +87,20 @@ class MLPClassifier():
 
         # index 0 means 1st layer Zs
         self.Zs = [
-            np.zeros((self.layer_sizes[i+1], ))
+            np.zeros((self.layer_sizes[i+1], self.n_samples_))
             for i in range(self.n_layers_-1)
         ]
 
         # As = activate(Zs)
-        self.As = [
-            np.zeros((self.layer_sizes[i+1], ))
-            for i in range(self.n_layers_-1)
+        other_As = [
+            np.zeros((self.layer_sizes[i], self.n_samples_))
+            for i in range(1, self.n_layers_)
         ]
+        self.As = [self.X] + other_As
 
         # error is \frac{\dev Out}{\dev Zs}
         self.Error = [
-            np.zeros((self.layer_sizes[i+1], ))
+            np.zeros((self.layer_sizes[i+1], self.n_samples_))
             for i in range(self.n_layers_ - 1)
         ]
 
@@ -103,132 +111,132 @@ class MLPClassifier():
             mylogger.debug('init [%s] Zs %s', i, self.Zs[i])
             mylogger.debug('init [%s] As %s', i, self.As[i])
             mylogger.debug('init [%s] Error %s', i, self.Error[i])
-        self.__feedforward(self.X, self.Y)
-        self.__backpropagation(self.X, self.Y)
+        mylogger.debug('init [%s] As %s', self.n_layers_-1, self.As[i])
+
+        # start training here.
+        for i in range(self.max_iter):
+            loss = self.__feedforward(self.X, self.Y)
+            self.__backpropagation(self.X, self.Y)
+            mylogger.info('TRAINING: [%s] Loss %s', i, loss)
+            if i % 100 == 0:
+                mylogger.info('MG [%s] Loss %s', i, loss)
+            if self.__last_loss is None:
+                self.__last_loss = loss
+            else:
+                if loss > self.__last_loss:
+                    mylogger.warn('[%s] loss %s, last loss %s. ERROR', i, loss, self.__last_loss)
+                self.__last_loss = loss
+
     def __feedforward(self, X, Y):
         # 0 <= i_layer <= n_layers - 2
         for i_layer in range(self.n_layers_-1):
-            # the first one
-            if i_layer == 0:
-                # Z(i) = W(i) (mat)* X + B(i)
-                # A(i) = Sigma(Z(i))
-                WX = np.dot(self.coef_[i_layer], X)
-                WXpB = WX + self.intercepts_[i_layer]
-                self.Zs[i_layer] = WXpB
-
-                mylogger.debug('ff shape [%s]: coef %s, inter %s, X %s, Z %s, A %s', 
-                    i_layer, 
-                    self.coef_[i_layer].shape, 
-                    self.intercepts_[i_layer].shape, 
-                    X.shape,
-                    self.Zs[i_layer].shape,
-                    '=X\'s'
-                )
-                mylogger.debug('ff val [%s]: WX %s\nWX + B %s\nZ %s\n', 
-                    i_layer, 
-                    WX,
-                    WXpB,
-                    self.Zs[i_layer]
-                )
-            else:
-                # Z(i) = W(i) (mat)* A(i-1) + B(i)
-                # A(i) = Sigma(Z(i))
-                WA = np.dot(self.coef_[i_layer], self.As[i_layer-1])
-                WApB = WA + self.intercepts_[i_layer]
-                self.Zs[i_layer] = WApB
-
-                mylogger.debug('ff shape [%s]: coef %s, inter %s, Z %s, A %s', 
-                    i_layer,
-                    self.coef_[i_layer].shape,
-                    self.intercepts_[i_layer].shape,
-                    self.Zs[i_layer].shape,
-                    self.As[i_layer-1].shape,
-                    )
-
-                mylogger.debug('ff val [%s]: WA %s\nWApB %s\nZs %s',
-                    i_layer,
-                    WA,
-                    WApB,
-                    self.Zs[i_layer]
-                )
-
-            self.As[i_layer] = self.activate(self.Zs[i_layer])
-            mylogger.debug('finish layer [%s], Zs %s As %s', i_layer, self.Zs[i_layer].shape, self.As[i_layer].shape)
-            mylogger.debug('finish layer [%s], \nZs %s\nAs %s', i_layer, self.Zs[i_layer], self.As[i_layer])
-        
-        # reach last layer. now predict
-        # get the first positive A's proba
-        predict = np.transpose(self.As[-1][0])
-        mylogger.debug('predict is %s', predict)
-        predict_softmax = np.exp(predict) / np.sum(np.exp(predict))
-        mylogger.debug('softmax is %s', predict_softmax)
-        loss = MLPClassifier.__loss(Y, predict_softmax)
-        mylogger.debug('loss is %s', loss)
+            WA = np.dot(self.coef_[i_layer], self.As[i_layer])
+            WApB = WA + self.intercepts_[i_layer] 
+            self.Zs[i_layer] = WApB
+            self.As[i_layer + 1] = self.activate(self.Zs[i_layer])
+            mylogger.debug("feedforward [l.%s] WA\n%s\nWApB\n%s\nZs\n%s\nAs\n%s",
+                i_layer,
+                WA,
+                WApB,
+                self.Zs[i_layer],
+                self.As[i_layer + 1])
+        outputA = self.As[self.n_layers_ - 1]
+        loss = self.__loss(Y, outputA)
+        mylogger.debug('feedforward loss is %s', loss)
+        mylogger.debug('output A is %s', outputA)
         return loss
 
     def __backpropagation(self, X, Y):
-        X = np.array(X)
-        Y = np.array(Y).reshape(-1)
-        # n_layers_ >= i_layer >= 0
+        Y = np.array(Y).reshape((1, -1)) # WARNING: here, Y is 1 * n
+        # for every layer, bp
         for i_layer in range(self.n_layers_ - 2, -1, -1):
-            # if is last layer
+            A = self.As[i_layer + 1]
+            Z = self.Zs[i_layer]
+            mylogger.debug('bp(%s) A %s, Z %s, layer-size %s', i_layer, A.shape, A.shape, self.layer_sizes[i_layer+1])
+            assert A.shape[0] == Z.shape[0] == self.layer_sizes[i_layer + 1] # don't worry. python support that.
+            assert A.shape[1] == Z.shape[1]
+
+            # for the last layer
+
+            # derivation of activation function.
+            # TODO: WARNING: below only used in Sigmoid. please change me
+            der = self.activate(Z) * (1- self.activate(Z))
             if i_layer == self.n_layers_ - 2:
-                left= -(Y / self.As[i_layer])
-                right = (1-Y)/(1-self.As[i_layer])
-                self.Error[-1] = left + right
-                
-                mylogger.debug('bp [%s] Y %s, As %s, Error %s, <left> %s, <right> %s',
-                    i_layer,
-                    Y.shape,
-                    self.As[i_layer].shape,
-                    self.Error[-1].shape,
-                    left.shape,
-                    right.shape
-                )
-                mylogger.debug('bp [%s] Y %s\nAs %s\nError %s\nleft %s\nright %s',
-                    i_layer,
-                    Y,
-                    self.As[i_layer],
-                    self.Error[-1],
-                    left,
-                    right)
+                assert np.all(self.As[-1] == self.As[i_layer+1])
+                assert np.all(self.Zs[-1] == self.Zs[i_layer])
+                sm = -(Y / A) + (1-Y)/(1-A)
+                assert sm.shape == A.shape
+                assert der.shape == A.shape == Z.shape
+                epsilon = sm * der
+                assert epsilon.shape == A.shape
+                mylogger.debug('bp(%s) Y\n%s\nA\n%s', i_layer, Y, A)
+                mylogger.debug('bp(%s) left\n%s\nright\n%s', i_layer, -(Y/A), (1-Y)/(1-A))
+                mylogger.debug('bp(%s) sm\n%s\nder\n%s', i_layer, sm, der)
+                self.Error[i_layer] = epsilon
+
             else:
-                WError = np.dot(np.transpose(self.coef_[i_layer+1]), self.Error[i_layer+1])
-                Error = WError * np.where(self.Zs[i_layer] > 0, self.Zs[i_layer], 0)
-                self.Error[i_layer] = Error
-                mylogger.debug('bp [%s], coef %s, error(i+1) is %s, WErr is %s, Error(i) %s', 
-                    i_layer, 
-                    self.coef_[i_layer+1].shape,
-                    self.Error[i_layer+1].shape, 
-                    WError.shape,
-                    self.Error[i_layer].shape
-                )
-                mylogger.debug('bp [%s], coef %s\n, Error(i+1) %s\n, WError %s\n, Error(i) %s',
-                    i_layer,
-                    self.coef_[i_layer+1],
-                    self.Error[i_layer+1],
-                    WError,
-                    self.Error[i_layer])
+                W = self.coef_[i_layer + 1]
+                E = self.Error[i_layer + 1]
+                assert W.shape[1] == self.layer_sizes[i_layer + 1]
+                assert W.shape[0] == self.layer_sizes[i_layer + 2]
+                assert W.shape[0] == E.shape[0]
+                mm = np.matmul(np.transpose(W), E)
+                assert mm.shape == der.shape
+                epsilon = np.multiply(mm, der)
+                self.Error[i_layer] = epsilon
 
+            mylogger.debug('bp(%s) : finished epsilon\n%s', i_layer, self.Error[i_layer])
 
+            # now update W and B according to epsilon
+            cur_n_size = self.layer_sizes[i_layer + 1]
+            pre_n_size = self.layer_sizes[i_layer]
+            epsilon = np.mean(self.Error[i_layer], axis=1)
+            dCdB = epsilon.reshape((-1, 1))
+            mylogger.debug('bp(%s) update. epsilon mean is \n%s\ndCdB is %s', i_layer, epsilon, dCdB)
+            dCdW = np.zeros((cur_n_size, pre_n_size))
 
-
+            udA = np.array(self.As[i_layer])
+            epsilon = self.Error[i_layer]
+            for idx in range(X.shape[1]):
+                a = udA[:, idx].reshape((1, -1))
+                eps = epsilon[:, idx].reshape((-1, 1))
+                mylogger.debug('bp(%s) update. a shape %s dCdW shape %s eps shape %s', i_layer, a.shape, dCdW.shape, eps.shape)
+                assert a.shape[1] == dCdW.shape[1]
+                assert eps.shape[0] == dCdW.shape[0]
+                w = eps * a
+                mylogger.debug('bp(%s) [l.%s] update w(1/n) of %s', i_layer, idx, w)
+                assert w.shape == dCdW.shape
+                dCdW += w / X.shape[1]
             
-    @staticmethod
-    def __loss(yi, ai):
+            mylogger.debug('bp(%s) dCdB\n%s\ndCdW\n%s',i_layer, dCdB, dCdW)
+            mylogger.debug('bp(%s) interf\n %s',i_layer, self.intercepts_[i_layer])
+            # update
+            assert self.intercepts_[i_layer].shape == dCdB.shape
+            assert self.coef_[i_layer].shape == dCdW.shape
+            self.intercepts_[i_layer] -= self.learning_rate_init * dCdB
+            self.coef_[i_layer] -= self.learning_rate_init * dCdW
+
+            mylogger.debug('bp(%s): update finish. B\n%s\nW\n%s',
+                i_layer,
+                self.intercepts_[i_layer],
+                self.coef_[i_layer])
+
+
+    def __loss(self, yi, ai):
         '''
         calculate the typical loss in NN.
         @param yi :: Boolean, ground truth.
         @param ai :: Float, predicted truth.
         '''
-        return np.sum(np.where(yi == 1, -np.log(ai), -np.log(1-ai)))
-
-
-    def activate(self, mat):
-        pass
-
-                
-
+        ret = []
+        ai = np.array(ai)
+        y_i = np.array(yi).reshape(-1)
+        for i in range(self.n_output_):
+            a_i = ai[i].reshape(-1)
+            mylogger.debug('here %s %s', y_i.shape, a_i.shape)
+            assert y_i.shape == a_i.shape
+            ret.append(np.sum(np.where(yi == 1, -np.log(a_i), -np.log(1-a_i))))
+        return np.sum(ret)
 
     
     def __warm_start(self):
@@ -237,7 +245,7 @@ class MLPClassifier():
             for i in range(self.n_layers_-1)
         ]
         self.intercepts_ = [
-            np.random.random((self.layer_sizes[i+1], self.n_samples_))
+            np.random.random((self.layer_sizes[i+1], 1)) # WARNING: this has been an error. shape[1] should be 1
             for i in range(self.n_layers_-1)
         ]
     def __cold_start(self):
@@ -246,7 +254,7 @@ class MLPClassifier():
             for i in range(self.n_layers_-1)
         ]
         self.intercepts_ = [
-            np.zeros((self.layer_sizes[i+1], self.n_samples_))
+            np.zeros((self.layer_sizes[i+1], 1))
             for i in range(self.n_layers_-1)
         ]
 
