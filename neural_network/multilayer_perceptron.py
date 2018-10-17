@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from logger import get_logger
 import metrics
@@ -16,7 +17,8 @@ class MLPClassifier():
         tol=1e-4,
         verbose=False,
         warm_start=True,
-        random_stat=1
+        random_stat=1,
+        mini_batch='full'
     ):
         '''
         @param hidden_layer_sides :: Tuple(Int). the hidden layer sizes.
@@ -35,6 +37,7 @@ class MLPClassifier():
         self.tol = tol
         self.warm_start = warm_start
         self.__last_loss = None
+        self.mini_batch = mini_batch
         np.random.seed(random_stat)
         if not verbose:
             import logging
@@ -55,9 +58,16 @@ class MLPClassifier():
         '''
         self.X = X
         self.Y = Y
-
         self.n_samples_ = X.shape[1]
         self.n_attr_ = X.shape[0]
+
+        if isinstance(self.mini_batch, str):
+            if self.mini_batch == 'full' or self.mini_batch == 'not':
+                self.mini_batch = self.n_samples_
+            elif self.mini_batch == 'auto':
+                self.mini_batch = math.floor(self.n_samples_/10)
+        else:
+            assert isinstance(self.mini_batch, int)
 
         val, cnt = np.unique(Y, return_counts=True)
         # self.n_output_ = val.shape[0]
@@ -85,26 +95,26 @@ class MLPClassifier():
         else:
             self.__cold_start()
 
+        n_samples_ = self.mini_batch
         # index 0 means 1st layer Zs
         self.Zs = [
-            np.zeros((self.layer_sizes[i+1], self.n_samples_))
+            np.zeros((self.layer_sizes[i+1], n_samples_))
             for i in range(self.n_layers_-1)
         ]
 
         # As = activate(Zs)
         other_As = [
-            np.zeros((self.layer_sizes[i], self.n_samples_))
+            np.zeros((self.layer_sizes[i], n_samples_))
             for i in range(1, self.n_layers_)
         ]
         self.As = [self.X] + other_As
 
         # error is \frac{\dev Out}{\dev Zs}
         self.Error = [
-            np.zeros((self.layer_sizes[i+1], self.n_samples_))
+            np.zeros((self.layer_sizes[i+1], n_samples_))
             for i in range(self.n_layers_ - 1)
         ]
 
-        mylogger.debug('init X %s\ninitY %s', self.X, self.Y)
         for i in range(self.n_layers_-1):
             mylogger.debug('init [%s] coef %s', i, self.coef_[i])
             mylogger.debug('init [%s] intercept %s', i, self.intercepts_[i])
@@ -115,6 +125,13 @@ class MLPClassifier():
 
         # start training here.
         for i in range(self.max_iter):
+
+            # idx = np.random.choice(self.n_samples_, self.mini_batch)
+            # X = self.X.iloc[:, idx]
+            # Y = self.Y.iloc[idx, :]
+            # mylogger.debug('MGK idx %s, X %s Y %s', idx,X.shape, Y.shape) 
+            # self.As[0] = X #TODO: maybe bug
+
             loss = self.__feedforward(self.X, self.Y)
             self.__backpropagation(self.X, self.Y)
             mylogger.info('TRAINING: [%s] Loss %s', i, loss)
@@ -259,6 +276,18 @@ class MLPClassifier():
         ]
 
     def predict(self, X):
-        pass
+        ret = []
+        for idx in range(X.shape[1]):
+            x = X[idx]
+            ret.append(self.__predict(x))
+        return ret
+    def __predict(self, x):
+        nx = x
+        for i_layer in range(self.n_layers_ - 1):
+            wx = np.matmul(self.coef_[i_layer], nx)
+            nx = wx + self.intercepts_[i_layer]
+            nx = self.activate(nx)
+        nx = nx.reshape(-1)[0]
+        return (1 if nx > 0.5 else 0, nx)
     def score(self, X, Y):
         pass
