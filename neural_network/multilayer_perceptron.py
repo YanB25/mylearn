@@ -1,3 +1,5 @@
+import os
+import pickle
 import math
 import numpy as np
 from logger import get_logger
@@ -18,7 +20,9 @@ class MLPClassifier():
         verbose=False,
         warm_start=True,
         random_stat=1,
-        mini_batch='full'
+        mini_batch='full',
+        step_size=100,
+        load_from_file=False
     ):
         '''
         @param hidden_layer_sides :: Tuple(Int). the hidden layer sizes.
@@ -38,6 +42,9 @@ class MLPClassifier():
         self.warm_start = warm_start
         self.__last_loss = None
         self.mini_batch = mini_batch
+        self.step_size = step_size
+        self.load_from_file = load_from_file
+        self.beg_index = 0
         np.random.seed(random_stat)
         if not verbose:
             import logging
@@ -89,7 +96,7 @@ class MLPClassifier():
         self.n_layers_ = len(self.layer_sizes)
 
         self.__train()
-    def __train(self):
+    def __init_data(self):
         if self.warm_start:
             self.__warm_start()
         else:
@@ -122,29 +129,50 @@ class MLPClassifier():
             mylogger.debug('init [%s] As %s', i, self.As[i])
             mylogger.debug('init [%s] Error %s', i, self.Error[i])
         mylogger.debug('init [%s] As %s', self.n_layers_-1, self.As[i])
+    def __init_from_file(self):
+        for idx in range(self.max_iter, -1, -1):
+            name = 'coef-' + str(idx)
+            if os.path.isfile(name):
+                self.beg_index = idx
+                f = open(name, 'rb')
+                self.coef_ = pickle.load(f)
+                mylogger.info('reload from file %s', name)
+
+                name = 'inter-' + str(idx)
+                assert os.path.isfile(name)
+                f = open(name, 'rb')
+                self.intercepts_ = pickle.load(f)
+                mylogger.info('reload from file %s', name)
+                return
+
+    def __train(self):
+        self.__init_data()
+        if self.load_from_file:
+            self.__init_from_file()
 
         # start training here.
-        for i in range(self.max_iter):
+        for i in range(self.beg_index, self.max_iter):
+            # pickle
+            if i % self.step_size == 0:
+                import pickle
+                f = open('coef-' + str(i), 'wb')
+                pickle.dump(self.coef_, f)
+                f.close()
+                f = open('inter-' + str(i), 'wb')
+                pickle.dump(self.intercepts_, f)
 
-            # idx = np.random.choice(self.n_samples_, self.mini_batch)
-            # X = self.X.iloc[:, idx]
-            # Y = self.Y.iloc[idx, :]
-            # mylogger.debug('MGK idx %s, X %s Y %s', idx,X.shape, Y.shape) 
-            # self.As[0] = X #TODO: maybe bug
-
-            loss = self.__feedforward(self.X, self.Y)
+            if i % self.step_size == 0:
+                loss = self.__feedforward(self.X, self.Y, return_loss=True)
+                mylogger.info('[%s] loss %s', i, loss)
+            else:
+                self.__feedforward(self.X, self.Y, return_loss=False)
             self.__backpropagation(self.X, self.Y)
-            mylogger.info('TRAINING: [%s] Loss %s', i, loss)
-            if i % 100 == 0:
-                mylogger.info('MG [%s] Loss %s', i, loss)
             if self.__last_loss is None:
                 self.__last_loss = loss
             else:
-                if loss > self.__last_loss:
-                    mylogger.warn('[%s] loss %s, last loss %s. ERROR', i, loss, self.__last_loss)
-                self.__last_loss = loss
+                self.__last_loss = self.__last_loss * 0.9 + loss
 
-    def __feedforward(self, X, Y):
+    def __feedforward(self, X, Y, return_loss=False):
         # 0 <= i_layer <= n_layers - 2
         for i_layer in range(self.n_layers_-1):
             WA = np.dot(self.coef_[i_layer], self.As[i_layer])
@@ -159,10 +187,11 @@ class MLPClassifier():
                 self.As[i_layer + 1])
         outputA = self.As[self.n_layers_ - 1]
         mylogger.debug('Y shape %s, outputA shape %s', Y.shape, outputA.shape)
-        loss = self.__loss(Y, outputA)
-        mylogger.debug('feedforward loss is %s', loss)
         mylogger.debug('output A is %s', outputA)
-        return loss
+        if return_loss:
+            loss = self.__loss(Y, outputA)
+            mylogger.debug('feedforward loss is %s', loss)
+            return loss
 
     def __backpropagation(self, X, Y):
         Y = np.array(Y).reshape((1, -1)) # WARNING: here, Y is 1 * n
@@ -302,5 +331,6 @@ class MLPClassifier():
             nx = self.activate(nx)
         nx = nx.reshape(-1)[0]
         return (1 if nx > 0.5 else 0, nx)
+
     def score(self, X, Y):
         pass
