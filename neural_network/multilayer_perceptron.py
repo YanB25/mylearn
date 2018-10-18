@@ -131,14 +131,14 @@ class MLPClassifier():
         mylogger.debug('init [%s] As %s', self.n_layers_-1, self.As[i])
     def __init_from_file(self):
         for idx in range(self.max_iter, -1, -1):
-            name = 'coef-' + str(idx)
+            name = '{}-{}.cachedata'.format('coef', str(idx))
             if os.path.isfile(name):
                 self.beg_index = idx
                 f = open(name, 'rb')
                 self.coef_ = pickle.load(f)
                 mylogger.info('reload from file %s', name)
 
-                name = 'inter-' + str(idx)
+                name = '{}-{}.cachedata'.format('inter', str(idx))
                 assert os.path.isfile(name)
                 f = open(name, 'rb')
                 self.intercepts_ = pickle.load(f)
@@ -155,10 +155,12 @@ class MLPClassifier():
             # pickle
             if i % self.step_size == 0:
                 import pickle
-                f = open('coef-' + str(i), 'wb')
+                name = '{}-{}.cachedata'.format('coef', str(i))
+                f = open(name, 'wb')
                 pickle.dump(self.coef_, f)
                 f.close()
-                f = open('inter-' + str(i), 'wb')
+                name = '{}-{}.cachedata'.format('inter', str(i))
+                f = open(name, 'wb')
                 pickle.dump(self.intercepts_, f)
 
             if i % self.step_size == 0:
