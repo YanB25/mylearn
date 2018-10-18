@@ -55,10 +55,10 @@ class MLPClassifier():
 
         if self.activation == 'relu':
             self.activate = metrics.ReLu
-            # self.activate_derivative = metrics.ReLu_derivative
+            self.activate_derivative = metrics.ReLu_derivative
         elif self.activation == 'leakyrelu':
             self.activate = metrics.LeakReLu
-            # self.activate_derivative = metrics.LeakReLu_derivative
+            self.activate_derivative = metrics.LeakReLu_derivative
         elif self.activation == 'sigmoid':
             self.activate = metrics.Sigmoid
             self.activate_derivative = metrics.Sigmoid_derivative

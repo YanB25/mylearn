@@ -5,6 +5,8 @@ from .logistic_function import ReLu
 from .logistic_function import LeakReLu
 from .logistic_function import Sigmoid
 from .logistic_function import Sigmoid_derivative
+from .logistic_function import ReLu_derivative
+from .logistic_function import LeakReLu_derivative
 __all__ = [
     'Gini',
     'Entropy',
@@ -12,5 +14,7 @@ __all__ = [
     'ReLu',
     'LeakReLu',
     'Sigmoid',
-    'Sigmoid_derivative'
+    'Sigmoid_derivative',
+    'ReLu_derivative',
+    'LeakReLu_derivative'
 ]
