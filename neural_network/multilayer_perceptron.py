@@ -158,6 +158,7 @@ class MLPClassifier():
                 self.Zs[i_layer],
                 self.As[i_layer + 1])
         outputA = self.As[self.n_layers_ - 1]
+        mylogger.debug('Y shape %s, outputA shape %s', Y.shape, outputA.shape)
         loss = self.__loss(Y, outputA)
         mylogger.debug('feedforward loss is %s', loss)
         mylogger.debug('output A is %s', outputA)
@@ -239,21 +240,33 @@ class MLPClassifier():
                 self.coef_[i_layer])
 
 
-    def __loss(self, yi, ai):
+    def __loss(self, Y, A):
         '''
         calculate the typical loss in NN.
-        @param yi :: Boolean, ground truth.
-        @param ai :: Float, predicted truth.
+        @param Y :: np.array(Boolean), of shape (mini_batch, 1). ground truth.
+        @param A :: pd.DataFrame(Float), of shape(n_output_, mini_batch). predicted truth.
         '''
+        # ret = []
+        # ai = np.array(ai)
+        # y_i = np.array(yi).reshape(-1)
+        # for i in range(self.n_output_):
+        #     a_i = ai[i].reshape(-1)
+        #     mylogger.debug('here %s %s', y_i.shape, a_i.shape)
+        #     assert y_i.shape == a_i.shape
+        #     ret.append(np.sum(np.where(yi == 1, -np.log(a_i), -np.log(1-a_i))))
+        # return np.sum(ret)
+        #TODO: loss is wrong for many output node.
+        assert Y.shape[0] == A.shape[1]
         ret = []
-        ai = np.array(ai)
-        y_i = np.array(yi).reshape(-1)
-        for i in range(self.n_output_):
-            a_i = ai[i].reshape(-1)
-            mylogger.debug('here %s %s', y_i.shape, a_i.shape)
-            assert y_i.shape == a_i.shape
-            ret.append(np.sum(np.where(yi == 1, -np.log(a_i), -np.log(1-a_i))))
-        return np.sum(ret)
+        Y = Y.values.reshape(-1)
+        mylogger.debug('cal loss begin. Y %s', Y)
+        for i_node in range(A.shape[0]):
+            ai = A[i_node, :]
+            trans = np.where(Y == 1, -np.log(ai), -np.log(1-ai))
+            mylogger.debug('cal loss(%s) ai %s trans %s', i_node, ai, trans)
+            ret.append(np.sum(trans))
+
+        return np.mean(ret)
 
     
     def __warm_start(self):
@@ -278,11 +291,11 @@ class MLPClassifier():
     def predict(self, X):
         ret = []
         for idx in range(X.shape[1]):
-            x = X[idx]
+            x = X.iloc[:, idx]
             ret.append(self.__predict(x))
         return ret
     def __predict(self, x):
-        nx = x
+        nx = x.values.reshape((-1, 1))
         for i_layer in range(self.n_layers_ - 1):
             wx = np.matmul(self.coef_[i_layer], nx)
             nx = wx + self.intercepts_[i_layer]
