@@ -18,3 +18,6 @@ def Sigmoid(dataset):
 def Softmax(dataset):
     exp_list = np.exp(dataset)
     return exp_list / np.sum(exp_list)
+
+def Sigmoid_derivative(dataset):
+    return Sigmoid(dataset) * (1- Sigmoid(dataset))

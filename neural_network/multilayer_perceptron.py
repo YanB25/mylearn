@@ -47,17 +47,21 @@ class MLPClassifier():
         self.load_from_file = load_from_file
         self.beg_index = 0
         self.dump_file = dump_file
+        self.loss_gain_cnt = 0
         np.random.seed(random_stat)
         if not verbose:
             import logging
             mylogger.setLevel(logging.INFO)
 
         if self.activation == 'relu':
-            self.activation = metrics.ReLu
+            self.activate = metrics.ReLu
+            # self.activate_derivative = metrics.ReLu_derivative
         elif self.activation == 'leakyrelu':
-            self.activation = metrics.LeakReLu
+            self.activate = metrics.LeakReLu
+            # self.activate_derivative = metrics.LeakReLu_derivative
         elif self.activation == 'sigmoid':
             self.activate = metrics.Sigmoid
+            self.activate_derivative = metrics.Sigmoid_derivative
         else:
             raise NotImplementedError('unknown activation {}'.format(self.activation))
     def fit(self, X, Y):
@@ -171,10 +175,15 @@ class MLPClassifier():
             else:
                 self.__feedforward(self.X, self.Y, return_loss=False)
             self.__backpropagation(self.X, self.Y)
-            if self.__last_loss is None:
-                self.__last_loss = loss
-            else:
-                self.__last_loss = self.__last_loss * 0.9 + loss
+
+            if i % self.step_size == 0:
+                if self.__last_loss and loss > self.__last_loss:
+                    self.learning_rate /= 2
+                    mylogger.info('decrease learning rate to %s', self.learning_rate)
+                if self.__last_loss is None:
+                    self.__last_loss = loss
+                else:
+                    self.__last_loss = loss
 
     def __feedforward(self, X, Y, return_loss=False):
         # 0 <= i_layer <= n_layers - 2
@@ -211,7 +220,9 @@ class MLPClassifier():
 
             # derivation of activation function.
             # TODO: WARNING: below only used in Sigmoid. please change me
-            der = self.activate(Z) * (1- self.activate(Z))
+            # TODO: I am trying to change. has it bug?
+            # der = self.activate(Z) * (1- self.activate(Z))
+            der = self.activate_derivative(Z)
             if i_layer == self.n_layers_ - 2:
                 assert np.all(self.As[-1] == self.As[i_layer+1])
                 assert np.all(self.Zs[-1] == self.Zs[i_layer])
@@ -279,16 +290,6 @@ class MLPClassifier():
         @param Y :: np.array(Boolean), of shape (mini_batch, 1). ground truth.
         @param A :: pd.DataFrame(Float), of shape(n_output_, mini_batch). predicted truth.
         '''
-        # ret = []
-        # ai = np.array(ai)
-        # y_i = np.array(yi).reshape(-1)
-        # for i in range(self.n_output_):
-        #     a_i = ai[i].reshape(-1)
-        #     mylogger.debug('here %s %s', y_i.shape, a_i.shape)
-        #     assert y_i.shape == a_i.shape
-        #     ret.append(np.sum(np.where(yi == 1, -np.log(a_i), -np.log(1-a_i))))
-        # return np.sum(ret)
-        #TODO: loss is wrong for many output node.
         assert Y.shape[0] == A.shape[1]
         ret = []
         Y = Y.values.reshape(-1)
