@@ -22,7 +22,8 @@ class MLPClassifier():
         random_stat=1,
         mini_batch='full',
         step_size=100,
-        load_from_file=False
+        load_from_file=False,
+        dump_file=False
     ):
         '''
         @param hidden_layer_sides :: Tuple(Int). the hidden layer sizes.
@@ -36,7 +37,7 @@ class MLPClassifier():
         '''
         self.hidden_layer_sizes = hidden_layer_sizes
         self.activation = activation
-        self.learning_rate_init = learning_rate_init
+        self.learning_rate = learning_rate_init
         self.max_iter = max_iter
         self.tol = tol
         self.warm_start = warm_start
@@ -45,6 +46,7 @@ class MLPClassifier():
         self.step_size = step_size
         self.load_from_file = load_from_file
         self.beg_index = 0
+        self.dump_file = dump_file
         np.random.seed(random_stat)
         if not verbose:
             import logging
@@ -153,7 +155,7 @@ class MLPClassifier():
         # start training here.
         for i in range(self.beg_index, self.max_iter):
             # pickle
-            if i % self.step_size == 0:
+            if self.dump_file and i % self.step_size == 0:
                 import pickle
                 name = '{}-{}.cachedata'.format('coef', str(i))
                 f = open(name, 'wb')
@@ -262,8 +264,8 @@ class MLPClassifier():
             # update
             assert self.intercepts_[i_layer].shape == dCdB.shape
             assert self.coef_[i_layer].shape == dCdW.shape
-            self.intercepts_[i_layer] -= self.learning_rate_init * dCdB
-            self.coef_[i_layer] -= self.learning_rate_init * dCdW
+            self.intercepts_[i_layer] -= self.learning_rate * dCdB
+            self.coef_[i_layer] -= self.learning_rate * dCdW
 
             mylogger.debug('bp(%s): update finish. B\n%s\nW\n%s',
                 i_layer,
