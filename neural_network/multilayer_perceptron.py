@@ -83,8 +83,7 @@ class MLPClassifier():
             assert isinstance(self.mini_batch, int)
 
         val, cnt = np.unique(Y, return_counts=True)
-        # self.n_output_ = val.shape[0]
-        self.n_output_ = 1 #TODO: now output become 1
+        self.n_output_ = val.shape[0]
         self.n_classes_ = val
 
         # the i-th is Weight matrix map layer i to layer i+1
@@ -97,7 +96,6 @@ class MLPClassifier():
         # 0 <= i <= n_layers-2
         self.intercepts_ = []
 
-        # TODO: output become 1 node!
         self.layer_sizes = (self.n_attr_, *self.hidden_layer_sizes, self.n_output_)
         self.n_layers_ = len(self.layer_sizes)
 
@@ -226,7 +224,7 @@ class MLPClassifier():
             if i_layer == self.n_layers_ - 2:
                 assert np.all(self.As[-1] == self.As[i_layer+1])
                 assert np.all(self.Zs[-1] == self.Zs[i_layer])
-                sm = -(Y / A) + (1-Y)/(1-A)
+                sm = self.__loss_derivative(Y, A)
                 assert sm.shape == A.shape
                 assert der.shape == A.shape == Z.shape
                 epsilon = sm * der
@@ -296,12 +294,18 @@ class MLPClassifier():
         mylogger.debug('cal loss begin. Y %s', Y)
         for i_node in range(A.shape[0]):
             ai = A[i_node, :]
-            trans = np.where(Y == 1, -np.log(ai), -np.log(1-ai))
+            trans = np.where(Y == i_node, -np.log(ai), -np.log(1-ai))
             mylogger.debug('cal loss(%s) ai %s trans %s', i_node, ai, trans)
             ret.append(np.sum(trans))
 
         return np.mean(ret)
-
+    def __loss_derivative(self, Y, A):
+        Y = Y.reshape(-1)
+        ret = A.copy()
+        for row in range(A.shape[0]):
+            ai = A[row]
+            ret[row] = np.where(Y == row, -1/ai, 1/(1-ai))
+        return ret
     
     def __warm_start(self):
         self.coef_ = [
@@ -334,8 +338,10 @@ class MLPClassifier():
             wx = np.matmul(self.coef_[i_layer], nx)
             nx = wx + self.intercepts_[i_layer]
             nx = self.activate(nx)
-        nx = nx.reshape(-1)[0]
-        return (1 if nx > 0.5 else 0, nx)
+        nx = nx.reshape(-1)
+        pre_label = np.argmax(nx)
+        pre_loss = nx[pre_label]
+        return (pre_label, nx)
 
     def score(self, X, Y):
         pass
