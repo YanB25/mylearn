@@ -323,11 +323,11 @@ class MLPClassifier():
     
     def __warm_start(self):
         self.coef_ = [
-            np.random.random((self.layer_sizes[i+1], self.layer_sizes[i]))
+            np.random.random((self.layer_sizes[i+1], self.layer_sizes[i])) * (1/np.max(self.layer_sizes))
             for i in range(self.n_layers_-1)
         ]
         self.intercepts_ = [
-            np.random.random((self.layer_sizes[i+1], 1)) # WARNING: this has been an error. shape[1] should be 1
+            np.random.random((self.layer_sizes[i+1], 1)) * (1/np.max(self.layer_sizes))  # WARNING: this has been an error. shape[1] should be 1
             for i in range(self.n_layers_-1)
         ]
     def __cold_start(self):
