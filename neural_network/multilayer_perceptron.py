@@ -58,12 +58,16 @@ class MLPClassifier():
         if self.activation == 'relu':
             self.activate = metrics.ReLu
             self.activate_derivative = metrics.ReLu_derivative
+            self.last_activate = metrics.Softmax
+            self.last_activate_derivative = metrics.Softmax_derivative
         elif self.activation == 'leakyrelu':
             self.activate = metrics.LeakReLu
             self.activate_derivative = metrics.LeakReLu_derivative
         elif self.activation == 'sigmoid':
             self.activate = metrics.Sigmoid
             self.activate_derivative = metrics.Sigmoid_derivative
+            self.last_activate = metrics.Sigmoid
+            self.last_activate_derivative = metrics.Sigmoid_derivative
         else:
             raise NotImplementedError('unknown activation {}'.format(self.activation))
     def fit(self, X, Y):
@@ -191,7 +195,10 @@ class MLPClassifier():
             WA = np.dot(self.coef_[i_layer], self.As[i_layer])
             WApB = WA + self.intercepts_[i_layer] 
             self.Zs[i_layer] = WApB
-            self.As[i_layer + 1] = self.activate(self.Zs[i_layer])
+            if i_layer == self.n_layers_ - 2:
+                self.As[i_layer + 1] = self.last_activate(self.Zs[i_layer])
+            else:
+                self.As[i_layer + 1] = self.activate(self.Zs[i_layer])
             mylogger.debug("feedforward [l.%s] WA\n%s\nWApB\n%s\nZs\n%s\nAs\n%s",
                 i_layer,
                 WA,
@@ -216,14 +223,14 @@ class MLPClassifier():
             assert A.shape[0] == Z.shape[0] == self.layer_sizes[i_layer + 1] # don't worry. python support that.
             assert A.shape[1] == Z.shape[1]
 
-            # for the last layer
 
             # derivation of activation function.
             # TODO: WARNING: below only used in Sigmoid. please change me
             # TODO: I am trying to change. has it bug?
-            # der = self.activate(Z) * (1- self.activate(Z))
-            der = self.activate_derivative(Z)
+
+            # for the last layer
             if i_layer == self.n_layers_ - 2:
+                der = self.last_activate_derivative(Z)
                 assert np.all(self.As[-1] == self.As[i_layer+1])
                 assert np.all(self.Zs[-1] == self.Zs[i_layer])
                 sm = self.__loss_derivative(Y, A)
@@ -237,6 +244,7 @@ class MLPClassifier():
                 self.Error[i_layer] = epsilon
 
             else:
+                der = self.activate_derivative(Z)
                 W = self.coef_[i_layer + 1]
                 E = self.Error[i_layer + 1]
                 assert W.shape[1] == self.layer_sizes[i_layer + 1]
@@ -308,6 +316,10 @@ class MLPClassifier():
             ai = A[row]
             ret[row] = np.where(Y == row, -1/ai, 1/(1-ai))
         return ret
+    def last_activate(self, dataset):
+        pass
+    def last_activate_derivative(self, dataset):
+        pass
     
     def __warm_start(self):
         self.coef_ = [

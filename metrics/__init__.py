@@ -7,6 +7,8 @@ from .logistic_function import Sigmoid
 from .logistic_function import Sigmoid_derivative
 from .logistic_function import ReLu_derivative
 from .logistic_function import LeakReLu_derivative
+from .logistic_function import Softmax
+from .logistic_function import Softmax_derivative
 __all__ = [
     'Gini',
     'Entropy',
@@ -16,5 +18,7 @@ __all__ = [
     'Sigmoid',
     'Sigmoid_derivative',
     'ReLu_derivative',
-    'LeakReLu_derivative'
+    'LeakReLu_derivative',
+    'Softmax',
+    'Softmax_derivative'
 ]
