@@ -204,7 +204,7 @@ class MLPClassifier():
         if return_loss:
             loss = self.__loss(Y, outputA)
             mylogger.debug('feedforward loss is %s', loss)
-            return loss
+            return loss / Y.shape[0]
 
     def __backpropagation(self, X, Y):
         Y = np.array(Y).reshape((1, -1)) # WARNING: here, Y is 1 * n
