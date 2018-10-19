@@ -105,6 +105,11 @@ class MLPClassifier():
         self.layer_sizes = (self.n_attr_, *self.hidden_layer_sizes, self.n_output_)
         self.n_layers_ = len(self.layer_sizes)
 
+
+        self.__init_data()
+        if self.load_from_file:
+            self.__init_from_file()
+
         self.__train()
     def __init_data(self):
         if self.warm_start:
@@ -156,10 +161,6 @@ class MLPClassifier():
                 return
 
     def __train(self):
-        self.__init_data()
-        if self.load_from_file:
-            self.__init_from_file()
-
         # start training here.
         for i in range(self.beg_index, self.max_iter):
             # pickle
@@ -323,11 +324,11 @@ class MLPClassifier():
     
     def __warm_start(self):
         self.coef_ = [
-            np.random.random((self.layer_sizes[i+1], self.layer_sizes[i])) * (1/np.max(self.layer_sizes))
+            np.random.random((self.layer_sizes[i+1], self.layer_sizes[i]))
             for i in range(self.n_layers_-1)
         ]
         self.intercepts_ = [
-            np.random.random((self.layer_sizes[i+1], 1)) * (1/np.max(self.layer_sizes))  # WARNING: this has been an error. shape[1] should be 1
+            np.random.random((self.layer_sizes[i+1], 1)) # WARNING: this has been an error. shape[1] should be 1
             for i in range(self.n_layers_-1)
         ]
     def __cold_start(self):
