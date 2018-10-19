@@ -23,7 +23,8 @@ class MLPClassifier():
         mini_batch='full',
         step_size=100,
         load_from_file=False,
-        dump_file=False
+        dump_file=False,
+        file_root='save-data'
     ):
         '''
         @param hidden_layer_sides :: Tuple(Int). the hidden layer sizes.
@@ -48,6 +49,7 @@ class MLPClassifier():
         self.beg_index = 0
         self.dump_file = dump_file
         self.loss_gain_cnt = 0
+        self.file_root = file_root
         np.random.seed(random_stat)
         if not verbose:
             import logging
@@ -135,14 +137,14 @@ class MLPClassifier():
         mylogger.debug('init [%s] As %s', self.n_layers_-1, self.As[i])
     def __init_from_file(self):
         for idx in range(self.max_iter, -1, -1):
-            name = '{}-{}.cachedata'.format('coef', str(idx))
+            name = '{}/{}-{}.cachedata'.format(self.file_root, 'coef', str(idx))
             if os.path.isfile(name):
                 self.beg_index = idx
                 f = open(name, 'rb')
                 self.coef_ = pickle.load(f)
                 mylogger.info('reload from file %s', name)
 
-                name = '{}-{}.cachedata'.format('inter', str(idx))
+                name = '{}/{}-{}.cachedata'.format(self.file_root, 'inter', str(idx))
                 assert os.path.isfile(name)
                 f = open(name, 'rb')
                 self.intercepts_ = pickle.load(f)
@@ -159,11 +161,11 @@ class MLPClassifier():
             # pickle
             if self.dump_file and i % self.step_size == 0:
                 import pickle
-                name = '{}-{}.cachedata'.format('coef', str(i))
+                name = '{}/{}-{}.cachedata'.format(self.file_root, 'coef', str(i))
                 f = open(name, 'wb')
                 pickle.dump(self.coef_, f)
                 f.close()
-                name = '{}-{}.cachedata'.format('inter', str(i))
+                name = '{}/{}-{}.cachedata'.format(self.file_root, 'inter', str(i))
                 f = open(name, 'wb')
                 pickle.dump(self.intercepts_, f)
 
