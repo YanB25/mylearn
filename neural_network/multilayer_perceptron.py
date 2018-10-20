@@ -352,7 +352,7 @@ class MLPClassifier():
         ret = A.copy()
         for row in range(A.shape[0]):
             ai = A[row]
-            ret[row] = np.where(Y == row, -1/ai, 1/(1-ai))
+            ret[row] = np.where(Y == row, -1/(ai + 1e-5), 1/(1-ai + 1e-5))
         return ret
     def last_activate(self, dataset):
         pass
