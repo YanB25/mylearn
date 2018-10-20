@@ -24,7 +24,8 @@ class MLPClassifier():
         step_size=100,
         load_from_file=False,
         dump_file=False,
-        file_root='save-data'
+        file_root='save-data',
+        validation_set = None
     ):
         '''
         @param hidden_layer_sides :: Tuple(Int). the hidden layer sizes.
@@ -50,6 +51,11 @@ class MLPClassifier():
         self.dump_file = dump_file
         self.loss_gain_cnt = 0
         self.file_root = file_root
+        self.no_dataset_shuffle = self.mini_batch == 'not'
+        if validation_set:
+            self.validation_X, self.validation_Y = validation_set
+        else:
+            self.validation_X, self.validation_Y = (None, None)
         np.random.seed(random_stat)
         if not verbose:
             import logging
@@ -189,6 +195,12 @@ class MLPClassifier():
                     self.__last_loss = loss
                 else:
                     self.__last_loss = loss
+
+                # and then validation
+                if self.validation_X is not None:
+                    s = self.score(self.validation_X, self.validation_Y)
+                    s2 = self.score(self.X, self.Y)
+                    mylogger.info('validation score %s, training score %s', s, s2)
 
     def __feedforward(self, X, Y, return_loss=False):
         # 0 <= i_layer <= n_layers - 2
@@ -383,9 +395,10 @@ class MLPClassifier():
             pre_val, _ = left
             if pre_val == truth:
                 correct += 1
-                print('C', i)
+                #print('C', i)
             else:
-                print('W', i)
+                #print('W', i)
+                pass
         return correct / n_samples
         
 
