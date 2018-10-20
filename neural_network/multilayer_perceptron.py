@@ -52,7 +52,7 @@ class MLPClassifier():
         self.loss_gain_cnt = 0
         self.file_root = file_root
         self.no_dataset_shuffle = mini_batch == 'not'
-        self.infomation = {}
+        self.information = {}
         if validation_set:
             self.validation_X, self.validation_Y = validation_set
         else:
@@ -165,6 +165,14 @@ class MLPClassifier():
                 f = open(name, 'rb')
                 self.intercepts_ = pickle.load(f)
                 mylogger.info('reload from file %s', name)
+
+
+                name = '{}/{}-{}.cachedata'.format(self.file_root, 'information', str(idx))
+                assert os.path.isfile(name)
+                f = open(name, 'rb')
+                self.information= pickle.load(f)
+                mylogger.info('reload from file %s', name)
+
                 return
 
     def __train(self):
@@ -190,6 +198,9 @@ class MLPClassifier():
                 name = '{}/{}-{}.cachedata'.format(self.file_root, 'inter', str(i))
                 f = open(name, 'wb')
                 pickle.dump(self.intercepts_, f)
+                name = '{}/{}-{}.cachedata'.format(self.file_root, 'information', str(i))
+                f = open(name, 'wb')
+                pickle.dump(self.information, f)
 
             if i % self.step_size == 0:
                 loss = self.__feedforward(X, Y, return_loss=True)
@@ -212,6 +223,9 @@ class MLPClassifier():
                     s = self.score(self.validation_X, self.validation_Y)
                     s2 = self.score(X, Y)
                     mylogger.info('validation score %s, training score %s', s, s2)
+                    self.information[i] = (loss, s, s2)
+                else:
+                    self.infomation[i] = loss
 
     def __feedforward(self, X, Y, return_loss=False):
         # 0 <= i_layer <= n_layers - 2
