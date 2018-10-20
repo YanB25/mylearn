@@ -52,6 +52,7 @@ class MLPClassifier():
         self.loss_gain_cnt = 0
         self.file_root = file_root
         self.no_dataset_shuffle = mini_batch == 'not'
+        self.infomation = {}
         if validation_set:
             self.validation_X, self.validation_Y = validation_set
         else:
