@@ -51,7 +51,7 @@ class MLPClassifier():
         self.dump_file = dump_file
         self.loss_gain_cnt = 0
         self.file_root = file_root
-        self.no_dataset_shuffle = self.mini_batch == 'not'
+        self.no_dataset_shuffle = mini_batch == 'not'
         if validation_set:
             self.validation_X, self.validation_Y = validation_set
         else:
@@ -169,6 +169,16 @@ class MLPClassifier():
     def __train(self):
         # start training here.
         for i in range(self.beg_index, self.max_iter):
+
+            if self.no_dataset_shuffle:
+                X = self.X
+                Y = self.Y
+            else:
+                idx = np.random.choice(self.n_samples_, self.mini_batch)
+                X = self.X.iloc[:, idx]
+                Y = self.Y.iloc[idx, :]
+            self.As[0] = X
+
             # pickle
             if self.dump_file and i % self.step_size == 0:
                 import pickle
@@ -181,14 +191,14 @@ class MLPClassifier():
                 pickle.dump(self.intercepts_, f)
 
             if i % self.step_size == 0:
-                loss = self.__feedforward(self.X, self.Y, return_loss=True)
+                loss = self.__feedforward(X, Y, return_loss=True)
                 mylogger.info('[%s] loss %s', i, loss)
             else:
-                self.__feedforward(self.X, self.Y, return_loss=False)
-            self.__backpropagation(self.X, self.Y)
+                self.__feedforward(X, Y, return_loss=False)
+            self.__backpropagation(X, Y)
 
             if i % self.step_size == 0:
-                if self.__last_loss and loss > self.__last_loss:
+                if self.mini_batch == 'not' and self.__last_loss and loss > self.__last_loss:
                     self.learning_rate /= 2
                     mylogger.info('decrease learning rate to %s', self.learning_rate)
                 if self.__last_loss is None:
@@ -199,7 +209,7 @@ class MLPClassifier():
                 # and then validation
                 if self.validation_X is not None:
                     s = self.score(self.validation_X, self.validation_Y)
-                    s2 = self.score(self.X, self.Y)
+                    s2 = self.score(X, Y)
                     mylogger.info('validation score %s, training score %s', s, s2)
 
     def __feedforward(self, X, Y, return_loss=False):
