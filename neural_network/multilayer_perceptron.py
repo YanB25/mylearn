@@ -357,7 +357,11 @@ class MLPClassifier():
         for i_layer in range(self.n_layers_ - 1):
             wx = np.matmul(self.coef_[i_layer], nx)
             nx = wx + self.intercepts_[i_layer]
-            nx = self.activate(nx)
+            #nx = self.activate(nx)
+            if i_layer == self.n_layers_ - 2:
+                nx = self.last_activate(nx)
+            else:
+                nx = self.activate(nx)
         nx = nx.reshape(-1)
         pre_label = np.argmax(nx)
         pre_loss = nx[pre_label]
@@ -379,6 +383,9 @@ class MLPClassifier():
             pre_val, _ = left
             if pre_val == truth:
                 correct += 1
+                print('C', i)
+            else:
+                print('W', i)
         return correct / n_samples
         
 
