@@ -28,6 +28,7 @@ def Softmax(dataset):
     npexp = np.exp(dataset)
     #logger.error('softmax %s', npexp)
     s = np.sum(npexp, axis=0)
+    s = np.where(s < 1e-5, 1e-5, s)
     return npexp / s
 def Softmax_derivative(dataset):
     return Softmax(dataset) * (1-Softmax(dataset))

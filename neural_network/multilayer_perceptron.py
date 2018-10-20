@@ -423,9 +423,7 @@ class MLPClassifier():
             pre_val, _ = left
             if pre_val == truth:
                 correct += 1
-                #print('C', i)
             else:
-                #print('W', i)
                 pass
         return correct / n_samples
         
