@@ -277,7 +277,7 @@ class MLPClassifier():
                 epsilon = sm * der
                 assert epsilon.shape == A.shape
                 mylogger.debug('bp(%s) Y\n%s\nA\n%s', i_layer, Y, A)
-                mylogger.debug('bp(%s) left\n%s\nright\n%s', i_layer, -(Y/A), (1-Y)/(1-A))
+                mylogger.debug('bp(%s) left\n%s\nright\n%s', i_layer, -(Y/(A+1e-3)), (1-Y)/(1-A-1e-3))
                 mylogger.debug('bp(%s) sm\n%s\nder\n%s', i_layer, sm, der)
                 self.Error[i_layer] = epsilon
 
