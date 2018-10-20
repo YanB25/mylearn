@@ -342,6 +342,11 @@ class MLPClassifier():
         ]
 
     def predict(self, X):
+        '''
+        predict the y label of X
+        @param X :: pd.DataFrame, of shape(n_attr_, n_samples_)
+        @ret ret :: [(label, output_a)]
+        '''
         ret = []
         for idx in range(X.shape[1]):
             x = X.iloc[:, idx]
@@ -359,4 +364,21 @@ class MLPClassifier():
         return (pre_label, nx)
 
     def score(self, X, Y):
-        pass
+        '''
+        predict the y label of X
+        @param X :: pd.DataFrame, of shape(n_attr_, n_samples_)
+        @param Y :: pd.DataFrame, of shape(n_samples, 1)
+        @ret ret :: Float, accuracy
+        '''
+        p = self.predict(X)
+        correct = 0
+        ys = Y.values.reshape(-1)
+        n_samples = ys.shape[0]
+        for i in zip(p, ys):
+            left, truth = i
+            pre_val, _ = left
+            if pre_val == truth:
+                correct += 1
+        return correct / n_samples
+        
+
