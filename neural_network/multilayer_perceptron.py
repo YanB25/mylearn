@@ -389,8 +389,9 @@ class MLPClassifier():
         p = self.predict(X)
         correct = 0
         ys = Y.values.reshape(-1)
-        n_samples = ys.shape[0]
+        n_samples = 0
         for i in zip(p, ys):
+            n_samples += 1
             left, truth = i
             pre_val, _ = left
             if pre_val == truth:
