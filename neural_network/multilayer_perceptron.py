@@ -342,6 +342,8 @@ class MLPClassifier():
         mylogger.debug('cal loss begin. Y %s', Y)
         for i_node in range(A.shape[0]):
             ai = A[i_node, :]
+            ai = np.min(ai, 1-1e-5)
+            ai = np.max(ai, 1e-5)
             trans = np.where(Y == i_node, -np.log(ai + 1e-6), -np.log(1-ai-1e-6))
             mylogger.debug('cal loss(%s) ai %s trans %s', i_node, ai, trans)
             ret.append(np.sum(trans))
