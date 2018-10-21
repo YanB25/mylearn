@@ -225,7 +225,7 @@ class MLPClassifier():
                     mylogger.info('validation score %s, training score %s', s, s2)
                     self.information[i] = (loss, s, s2)
                 else:
-                    self.infomation[i] = loss
+                    self.information[i] = loss
 
     def __feedforward(self, X, Y, return_loss=False):
         # 0 <= i_layer <= n_layers - 2
