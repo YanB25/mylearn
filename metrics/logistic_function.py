@@ -32,3 +32,8 @@ def Softmax(dataset):
     return npexp / s
 def Softmax_derivative(dataset):
     return Softmax(dataset) * (1-Softmax(dataset))
+
+def Id(dataset):
+    return dataset
+def Id_derivative(dataset):
+    return np.ones(dataset.shape)

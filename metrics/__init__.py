@@ -9,6 +9,8 @@ from .logistic_function import ReLu_derivative
 from .logistic_function import LeakReLu_derivative
 from .logistic_function import Softmax
 from .logistic_function import Softmax_derivative
+from .logistic_function import Id
+from .logistic_function import Id_derivative
 __all__ = [
     'Gini',
     'Entropy',
@@ -20,5 +22,7 @@ __all__ = [
     'ReLu_derivative',
     'LeakReLu_derivative',
     'Softmax',
-    'Softmax_derivative'
+    'Softmax_derivative',
+    'Id',
+    'Id_derivative'
 ]
