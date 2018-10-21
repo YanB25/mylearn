@@ -426,5 +426,12 @@ class MLPClassifier():
             else:
                 pass
         return correct / n_samples
-        
-
+    def to_csv(self, test_X, filename):
+        '''
+        为了完成作业而开的接口。
+        @param test_Y :: pd.DataFrame, of shape(n_attr, n_sample)
+        @param filename :: Str, the filename
+        '''
+        p = self.predict(test_X)
+        result = pd.DataFrame([i[0] for i in p])
+        result.to_csv(filename, index=0, header=None, index_label=None)
