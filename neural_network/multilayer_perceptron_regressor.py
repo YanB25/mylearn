@@ -428,7 +428,7 @@ class MLPRegressor():
             n_samples += 1
             left, truth = i
             error += abs(left - truth)
-        return error
+        return error/ys.shape[0]
     def to_csv(self, test_X, filename):
         '''
         为了完成作业而开的接口。
