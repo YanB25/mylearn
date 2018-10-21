@@ -226,7 +226,7 @@ class MLPRegressor():
                 if self.validation_X is not None:
                     s = self.score(self.validation_X, self.validation_Y)
                     s2 = self.score(X, Y)
-                    mylogger.info('validation score %s, training score %s', s, s2)
+                    mylogger.info('loss %s validation score %s, training score %s', loss, s, s2)
                     self.information[i] = (loss, s, s2)
                 else:
                     self.information[i] = loss
