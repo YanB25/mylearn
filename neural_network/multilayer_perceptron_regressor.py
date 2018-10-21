@@ -420,15 +420,21 @@ class MLPRegressor():
         @param Y :: pd.DataFrame, of shape(n_samples, 1)
         @ret ret :: Float, accuracy
         '''
+        # p = self.predict(X)
+        # error = 0
+        # ys = Y.values.reshape(-1)
+        # n_samples = 0
+        # for i in zip(p, ys):
+        #     n_samples += 1
+        #     left, truth = i
+        #     error += abs(left - truth)
+        # return error/ys.shape[0]
         p = self.predict(X)
-        error = 0
-        ys = Y.values.reshape(-1)
-        n_samples = 0
-        for i in zip(p, ys):
-            n_samples += 1
-            left, truth = i
-            error += abs(left - truth)
-        return error/ys.shape[0]
+        p = np.array(p).reshape(-1)
+        Y = Y.values.reshape(-1)
+        result = np.corrcoef(p, Y)
+        return result[0][1]
+
     def to_csv(self, test_X, filename):
         '''
         为了完成作业而开的接口。
