@@ -428,7 +428,6 @@ class MLPRegressor():
             n_samples += 1
             left, truth = i
             error += abs(left - truth)
-            print(i)
         return error
     def to_csv(self, test_X, filename):
         '''
